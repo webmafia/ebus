@@ -2,7 +2,6 @@ package ebus
 
 import (
 	"fmt"
-	"testing"
 )
 
 func ExampleEventBus() {
@@ -47,20 +46,4 @@ func ExampleEventBus() {
 	// Subscribers: 2
 	// Subscriber C: 123
 	// Subscriber A: 123
-}
-
-func BenchmarkEventBus(b *testing.B) {
-	const MyEvent Event = 1
-
-	eb := NewEventBus()
-
-	Sub(eb, MyEvent, func(v *int) {
-		_ = v
-	})
-
-	b.ResetTimer()
-
-	for i := range b.N {
-		Pub(eb, MyEvent, &i)
-	}
 }
