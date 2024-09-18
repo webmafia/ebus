@@ -71,12 +71,12 @@ func (eb *EventBus) Pub(event Event) {
 	}
 }
 
-// Subscribe for an event. Any publishers will be blocked until all subsribers are done,
+// Subscribe for an event. Any publisher will be blocked until all subsribers are done,
 // so please keep your subscriber fast and run anything slow in e.g. a background worker.
 // Also consider the function:
 //
 //	ebus.Sub(bus, 123, func(myVar *myType) { ... })
-func (eb *EventBus) Sub(event Event, fn func()) {
+func (eb *EventBus) Sub(event Event, fn func()) func() {
 	key := eventKey{
 		event: event,
 	}
@@ -86,10 +86,11 @@ func (eb *EventBus) Sub(event Event, fn func()) {
 	al, ok := v.(*list.AtomicList[func()])
 
 	if !ok {
-		return
+		return nil
 	}
 
 	al.Add(fn)
+	return fn
 }
 
 // Unsubscribe an event. Returns whether there was a subscription or not.
@@ -143,10 +144,10 @@ func Pub[T any](eb *EventBus, event Event, val *T) {
 	}
 }
 
-// Subscribe for an event. Any publishers will be blocked until all subsribers are done,
+// Subscribe for an event. Any publisher will be blocked until all subsribers are done,
 // so please keep your subscriber fast and run anything slow in e.g. a background worker.
 // Publishers must publish the specific variable type.
-func Sub[T any](eb *EventBus, event Event, fn func(*T)) {
+func Sub[T any](eb *EventBus, event Event, fn func(*T)) func(*T) {
 	key := eventKey{
 		event: event,
 		typ:   typeHash((*T)(nil)),
@@ -157,10 +158,21 @@ func Sub[T any](eb *EventBus, event Event, fn func(*T)) {
 	al, ok := v.(*list.AtomicList[func(*T)])
 
 	if !ok {
-		return
+		return nil
 	}
 
 	al.Add(fn)
+	return fn
+}
+
+// Convenient method for subscribing for an event and pushing to a channel, so that
+// slow subscribers can do their work in a goroutine. If channel is full, any publisher
+// will block.
+// Publishers must publish the specific variable type.
+func SubToChan[T any](eb *EventBus, event Event, ch chan<- *T) func(*T) {
+	return Sub(eb, event, func(val *T) {
+		ch <- val
+	})
 }
 
 // Unsubscribe an event. Returns whether there was a subscription or not.
