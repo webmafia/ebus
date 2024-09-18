@@ -1,4 +1,4 @@
-package ebus
+package list
 
 import (
 	"fmt"

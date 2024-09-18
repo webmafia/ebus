@@ -1,4 +1,4 @@
-package ebus
+package list
 
 import (
 	"iter"
@@ -16,7 +16,7 @@ type link[T any] struct {
 	val  T
 }
 
-// Add inserts a new value at the front of the chain
+// Inserts a new value at the front of the chain
 func (ac *AtomicList[T]) Add(v T) {
 	newLink := &link[T]{val: v}
 
@@ -36,7 +36,7 @@ func (ac *AtomicList[T]) Add(v T) {
 	ac.size.Add(1)
 }
 
-// Remove removes the first occurrence of the value `v` from the chain
+// Removes the first occurrence from the chain
 func (ac *AtomicList[T]) Remove(fn func(T) bool) bool {
 	var prev *link[T] // Previous link
 	curr := ac.link.Load()
@@ -70,6 +70,7 @@ func (ac *AtomicList[T]) Remove(fn func(T) bool) bool {
 	return false // Value not found
 }
 
+// Removes all occurrences from the chain
 func (ac *AtomicList[T]) RemoveAll(fn func(T) bool) (removed int64) {
 	var prev *link[T] // Previous link
 	curr := ac.link.Load()
@@ -103,6 +104,7 @@ func (ac *AtomicList[T]) RemoveAll(fn func(T) bool) (removed int64) {
 	return
 }
 
+// Returns an iterator
 func (ac *AtomicList[T]) Iter() iter.Seq[T] {
 	return func(yield func(T) bool) {
 		l := ac.link.Load()
@@ -117,10 +119,12 @@ func (ac *AtomicList[T]) Iter() iter.Seq[T] {
 	}
 }
 
+// Returns the number of items in the list
 func (ac *AtomicList[T]) Size() int64 {
 	return ac.size.Load()
 }
 
+// Reset the list
 func (ac *AtomicList[T]) Reset() {
 	ac.link.Store(nil)
 	ac.size.Store(0)
