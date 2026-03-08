@@ -1,6 +1,7 @@
 package ebus
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -16,10 +17,10 @@ type Event uint32
 //	bus := NewEventBus()
 //
 //	// Either send only event
-//	bus.Pub(123)
+//	bus.Pub(ctx, 123)
 //
 //	// Or also send variable
-//	ebus.Pub(bus, 123, &myVar)
+//	ebus.Pub(bus, ctx, 123, &myVar)
 type EventBus struct {
 	cbs sync.Map
 }
@@ -48,8 +49,8 @@ func (eb *EventBus) Subscribers() (n int64) {
 // Publish an event. Function will block until all subscribers are done.
 // Also consider the function:
 //
-//	ebus.Pub(bus, 123, &myVar)
-func (eb *EventBus) Pub(event Event) {
+//	ebus.Pub(bus, ctx, 123, &myVar)
+func (eb *EventBus) Pub(ctx context.Context, event Event) {
 	key := eventKey{
 		event: event,
 	}
@@ -60,14 +61,14 @@ func (eb *EventBus) Pub(event Event) {
 		return
 	}
 
-	al, ok := v.(*list.AtomicList[func()])
+	al, ok := v.(*list.AtomicList[func(context.Context)])
 
 	if !ok {
 		return
 	}
 
 	for fn := range al.Iter() {
-		fn()
+		fn(ctx)
 	}
 }
 
@@ -75,15 +76,15 @@ func (eb *EventBus) Pub(event Event) {
 // so please keep your subscriber fast and run anything slow in e.g. a background worker.
 // Also consider the function:
 //
-//	ebus.Sub(bus, 123, func(myVar *myType) { ... })
-func (eb *EventBus) Sub(event Event, fn func()) func() {
+//	ebus.Sub(bus, 123, func(ctx context.Context, myVar *myType) { ... })
+func (eb *EventBus) Sub(event Event, fn func(context.Context)) func(context.Context) {
 	key := eventKey{
 		event: event,
 	}
 
-	v, _ := eb.cbs.LoadOrStore(key, &list.AtomicList[func()]{})
+	v, _ := eb.cbs.LoadOrStore(key, &list.AtomicList[func(context.Context)]{})
 
-	al, ok := v.(*list.AtomicList[func()])
+	al, ok := v.(*list.AtomicList[func(context.Context)])
 
 	if !ok {
 		return nil
@@ -97,7 +98,7 @@ func (eb *EventBus) Sub(event Event, fn func()) func() {
 // Also consider the function:
 //
 //	ebus.Unsub(bus, 123, mySubscriber)
-func (eb *EventBus) Unsub(event Event, fn func()) (unsubscribed bool) {
+func (eb *EventBus) Unsub(event Event, fn func(context.Context)) (unsubscribed bool) {
 	key := eventKey{
 		event: event,
 	}
@@ -108,13 +109,13 @@ func (eb *EventBus) Unsub(event Event, fn func()) (unsubscribed bool) {
 		return
 	}
 
-	al, ok := v.(*list.AtomicList[func()])
+	al, ok := v.(*list.AtomicList[func(context.Context)])
 
 	if !ok {
 		return
 	}
 
-	return al.Remove(func(f func()) bool {
+	return al.Remove(func(f func(context.Context)) bool {
 		return same(f, fn)
 	})
 }

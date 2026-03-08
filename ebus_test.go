@@ -1,6 +1,7 @@
 package ebus
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -8,16 +9,17 @@ func ExampleEventBus() {
 	const MyEvent Event = 1
 
 	eb := NewEventBus()
+	ctx := context.Background()
 
-	subA := func(v *int) {
+	subA := func(_ context.Context, v *int) {
 		fmt.Println("Subscriber A:", *v)
 	}
 
-	subB := func(v *int) {
+	subB := func(_ context.Context, v *int) {
 		fmt.Println("Subscriber B:", *v)
 	}
 
-	subC := func(v *int) {
+	subC := func(_ context.Context, v *int) {
 		fmt.Println("Subscriber C:", *v)
 	}
 
@@ -29,12 +31,12 @@ func ExampleEventBus() {
 
 	i := 123
 
-	Pub(eb, MyEvent, &i)
+	Pub(eb, ctx, MyEvent, &i)
 
 	fmt.Println("--------")
 	Unsub(eb, MyEvent, subB)
 	fmt.Println("Subscribers:", eb.Subscribers())
-	Pub(eb, MyEvent, &i)
+	Pub(eb, ctx, MyEvent, &i)
 
 	// Output:
 	//

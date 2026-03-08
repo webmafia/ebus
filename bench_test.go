@@ -1,6 +1,7 @@
 package ebus
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -12,9 +13,10 @@ func BenchmarkEventBus(b *testing.B) {
 	for _, n := range subs {
 		b.Run(fmt.Sprintf("%02d_subscribers", n), func(b *testing.B) {
 			eb := NewEventBus()
+			ctx := context.Background()
 
 			for range n {
-				eb.Sub(MyEvent, func() {
+				eb.Sub(MyEvent, func(_ context.Context) {
 					_ = MyEvent
 				})
 			}
@@ -22,7 +24,7 @@ func BenchmarkEventBus(b *testing.B) {
 			b.ResetTimer()
 
 			for range b.N {
-				eb.Pub(MyEvent)
+				eb.Pub(ctx, MyEvent)
 			}
 		})
 	}
@@ -35,9 +37,10 @@ func BenchmarkEventBus_Parallell(b *testing.B) {
 	for _, n := range subs {
 		b.Run(fmt.Sprintf("%02d_subscribers", n), func(b *testing.B) {
 			eb := NewEventBus()
+			ctx := context.Background()
 
 			for range n {
-				eb.Sub(MyEvent, func() {
+				eb.Sub(MyEvent, func(_ context.Context) {
 					_ = MyEvent
 				})
 			}
@@ -46,7 +49,7 @@ func BenchmarkEventBus_Parallell(b *testing.B) {
 
 			b.RunParallel(func(p *testing.PB) {
 				for p.Next() {
-					eb.Pub(MyEvent)
+					eb.Pub(ctx, MyEvent)
 				}
 			})
 		})
@@ -60,9 +63,10 @@ func BenchmarkEventBus_Var(b *testing.B) {
 	for _, n := range subs {
 		b.Run(fmt.Sprintf("%02d_subscribers", n), func(b *testing.B) {
 			eb := NewEventBus()
+			ctx := context.Background()
 
 			for range n {
-				Sub(eb, MyEvent, func(v *int) {
+				Sub(eb, MyEvent, func(_ context.Context, v *int) {
 					_ = v
 				})
 			}
@@ -70,7 +74,7 @@ func BenchmarkEventBus_Var(b *testing.B) {
 			b.ResetTimer()
 
 			for i := range b.N {
-				Pub(eb, MyEvent, &i)
+				Pub(eb, ctx, MyEvent, &i)
 			}
 		})
 	}
@@ -83,9 +87,10 @@ func BenchmarkEventBus_Var_Parallell(b *testing.B) {
 	for _, n := range subs {
 		b.Run(fmt.Sprintf("%02d_subscribers", n), func(b *testing.B) {
 			eb := NewEventBus()
+			ctx := context.Background()
 
 			for range n {
-				Sub(eb, MyEvent, func(v *int) {
+				Sub(eb, MyEvent, func(_ context.Context, v *int) {
 					_ = v
 				})
 			}
@@ -96,7 +101,7 @@ func BenchmarkEventBus_Var_Parallell(b *testing.B) {
 				var i int
 
 				for p.Next() {
-					Pub(eb, MyEvent, &i)
+					Pub(eb, ctx, MyEvent, &i)
 				}
 			})
 		})

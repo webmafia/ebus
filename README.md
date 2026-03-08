@@ -22,14 +22,15 @@ const (
 )
 
 bus := ebus.NewEventBus()
+ctx := context.Background()
 
 // Subscribe for MyEvent
-sub := bus.Sub(MyEvent, func() {
+sub := bus.Sub(MyEvent, func(ctx context.Context) {
     fmt.Println("recieved event")
 })
 
 // Publish MyEvent
-bus.Pub(MyEvent)
+bus.Pub(ctx, MyEvent)
 
 // Unsubscribe for MyEvent
 bus.Unsub(MyEvent, sub)
@@ -56,28 +57,29 @@ type (
 )
 
 bus := ebus.NewEventBus()
+ctx := context.Background()
 
 // Subscribe for created users
-ebus.Sub(bus, Created, func(u *User) {
+ebus.Sub(bus, Created, func(ctx context.Context, u *User) {
     fmt.Println("user", u.Name, "was created")
 
     // Note that it's NOT safe to keep `u` after return
 })
 
 // Subscribe for created orders
-ebus.Sub(bus, Created, func(o *Order) {
+ebus.Sub(bus, Created, func(ctx context.Context, o *Order) {
     fmt.Println("order", o.Id, "was created")
 
     // Note that it's NOT safe to keep `o` after return
 })
 
 // Publish that a user was created
-ebus.Pub(bus, Created, &User{
+ebus.Pub(bus, ctx, Created, &User{
     Name: "John Doe"
 })
 
 // Publish that an order was created
-ebus.Pub(bus, Created, &Order{
+ebus.Pub(bus, ctx, Created, &Order{
     Id: 123456
 })
 ```
@@ -97,6 +99,7 @@ type Order struct{
 }
 
 bus := ebus.NewEventBus()
+ctx := context.Background()
 
 // Create a buffered channel
 ch := make(chan Order, 8)
@@ -118,7 +121,7 @@ go func(ch <-chan Order) {
 ebus.SubToChan(bus, Created, ch)
 
 // Publish that an order was created
-ebus.Pub(bus, Created, &Order{
+ebus.Pub(bus, ctx, Created, &Order{
     Id: 123456
 })
 
